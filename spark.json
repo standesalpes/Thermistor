@@ -1,0 +1,7 @@
+{
+  "name": "Thermistor",
+  "author": "Bruce Calder <brucebcalder@gmail.com>",
+  "license": "MIT",
+  "version": "0.0.7",
+  "description": "A thermistor library"
+}
