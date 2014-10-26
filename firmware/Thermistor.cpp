@@ -1,65 +1,50 @@
 #include "application.h"
 #include "Thermistor.h"
+#include <math.h>
 
 
-Thermistor::Thermistor(int pin, int resistor) {
-    _pin = pin;
-    _resistor = resistor;
-}
- 
- 
-void Thermistor::begin(void) {
-    pinMode(_pin, INPUT);
-}
- 
- 
-int Thermistor::getTempRaw(bool smooth=false) {
-    delay(1);
-    
-    if(smooth==true) {
-        int total = 0;
+Thermistor::Thermistor(int pin, int Rn, int R) {
+    this->pin = pin;
+    nominalR = Rn;
+    resistor = (float)R;
+}   
+
         
-        for(int i=0; i<100; i++) {
-            total += analogRead(_pin);
-            delay(1);
-        }
-        
-        _temp_raw = total/100;
-    } else
-        _temp_raw = analogRead(_pin);
- 
-    return _temp_raw;
+void Thermistor::begin() {
+    pinMode(pin, INPUT);
+}       
+
+
+float Thermistor::getAnalogReadValue() {
+    if(NO_OF_SAMPLES == 1) {
+        return (float)analogRead(pin);
+    }
+    int total = 0;
+    for(int i=0; i<NO_OF_SAMPLES; i++) {
+        total += analogRead(pin); // warning: this can rewind at int limit
+        delay(1);
+    }
+
+    return (float)total/(float)NO_OF_SAMPLES;
 }
- 
- 
-float Thermistor::getTempK(bool smooth=false) {
-    _temp_raw = getTempRaw(smooth);
- 
-    _temp_k = log(((40960000/_temp_raw) - _resistor));
-    _temp_k = 1 / (0.001129148 + (0.000234125 + (0.0000000876741 * _temp_k * _temp_k ))* _temp_k);
+
+
+float Thermistor::getTempK() {
+
+    float aValue = getAnalogReadValue();
     
-    return _temp_k;
-}
- 
- 
-float Thermistor::getTempC(bool smooth=false) {
-    _temp_k = getTempK(smooth);
+    float logRtoRn = log(resistor*(ADC_RANGE/aValue - 1.0)/nominalR);
+    float temp = 1.0/(a + b*logRtoRn + c*logRtoRn*logRtoRn + d*pow(logRtoRn,3));
     
-    _temp_c = _temp_k - 273.15;
- 
-    return _temp_c;
+    return temp;
 }
  
  
-float Thermistor::getTempF(bool smooth=false) {
-    _temp_c = getTempC(smooth);
-    
-    _temp_f = (_temp_c * 9.0)/ 5.0 + 32.0;
- 
-    return _temp_f;
+float Thermistor::getTempC() {
+    return getTempK() - 273.15;
 }
  
- 
-float Thermistor::getTemp(bool smooth=false) {
-    return getTempC(smooth);
+
+float Thermistor::getTempF() {
+    return 1.8 * getTempK() - 459.67;
 }
